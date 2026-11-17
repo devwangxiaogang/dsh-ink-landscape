@@ -67,7 +67,7 @@ DSH 的 `desktop` profile 由 Electron 管理，`dsh plugin --profile desktop ad
 
 ```bash
 cd "$DSH_HOME/profiles/desktop"          # Windows 默认 %USERPROFILE%\AppData\Roaming\dsh 之外，看你的安装
-pnpm add "github:devwangxiaogang/dsh-ink-landscape#v0.2.2"
+pnpm add "github:devwangxiaogang/dsh-ink-landscape#v0.2.3"
 ```
 
 然后编辑同一个 `package.json`，在 `dsh.profile.bundles` 末尾加一行（**这一步不能少**，
@@ -79,7 +79,7 @@ loader 只会挂载列在这个数组里的包）：
 
 **重启 DSH**，插件就出现在「设置 → 通用 → 皮肤主题」。
 
-升级：把 `#v0.2.2` 换成新 tag 再 `pnpm add` 一次即可（或用 `pnpm update dsh-ink-landscape`）。
+升级：把 `#v0.2.3` 换成新 tag 再 `pnpm add` 一次即可（或用 `pnpm update dsh-ink-landscape`）。
 
 ### 方式 B：克隆到本地再 link（改代码时用）
 
