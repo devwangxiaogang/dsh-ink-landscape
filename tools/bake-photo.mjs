@@ -21,8 +21,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
 const PAGE = resolve(ROOT, 'art/galaxy-photo.html')
 const OUT = resolve(ROOT, 'lib/assets')
-const W = 2560
-const H = 1440
+const W = 2048
+const H = 1152
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -88,7 +88,7 @@ async function shot(tone) {
     await send('Page.navigate', { url })
     await sleep(3500)
 
-    const res = await send('Page.captureScreenshot', { format: 'webp', quality: 78 })
+    const res = await send('Page.captureScreenshot', { format: 'webp', quality: 76 })
     if (!res.result?.data) throw new Error('capture failed')
     const buf = Buffer.from(res.result.data, 'base64')
     const out = resolve(OUT, `galaxy-${tone}.webp`)

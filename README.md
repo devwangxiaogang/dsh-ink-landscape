@@ -204,7 +204,24 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 | 运行时滤镜 | 0 |
 | 运行时 SVG 节点 | 3（三个圆环，避免方角化） |
 | 样式表 `<style>` | 1 |
-| 场景挂载时机 | `requestAnimationFrame` → `requestIdleCallback`（不阻塞首屏） |
+| 场景挂载时机 | 首次同步挂载（与皮肤一起出现在第一帧），切换时才让帧 |
+
+### 启动为什么快 / 曾经慢在哪
+
+`tools/startup-perf.mjs` 在真实 host 里量「从导航到皮肤可见」的每个里程碑（脚本注入的观测器比应用脚本更早运行）：
+
+| 里程碑（点号后为实测 ms，warm） | 0.2.3 | 0.2.4 |
+| --- | --- | --- |
+| DOMContentLoaded | 148 | 137 |
+| 皮肤样式注入（`apply()` 完成） | 369 | 317 |
+| 场景挂载（画面出现） | **829** | **317** |
+| 首屏下载的位图（银河深色档） | 159 + 226 KB | **97 KB** |
+
+三处改动，都是「把不属于首屏的东西从首屏挪开」：
+
+1. **首挂不再等空闲**。原来一律 `requestAnimationFrame` → `requestIdleCallback(fn, { timeout: 900 })`，本意是别打断首帧；实测启动时 shell 自己有一段 ~400 ms 的长任务，让帧的结果是皮肤排在它后面，用户先看到一瞬没有皮肤的界面（晚约 420 ms）。建一层 11 个 div 很便宜，首挂就同步做掉，切皮肤时才让帧。
+2. **另一档色调的图不再抢带宽**。原来挂载后立刻在空闲时预热「浅色/深色」另一张图（226 KB），等于首屏多下一份。现在推迟到启动 4 s 之后再预热（省流量模式下干脆不预热），第一次翻色调最多等一次下载。
+3. **银河底图重新烘焙到 2048×1152 / q76**。2560×1440 在 1680×1000 的窗口里本来就是下采样，降到 2048 后 159→97 KB、226→139 KB，解码面积 -36%，观感无差别（`background-size: cover`，仍然是缩小）。
 
 ## 七、目录结构
 
@@ -239,6 +256,7 @@ node tools/serve.mjs 54777
 | `tools/probe-overlay.mjs` | 真实 shell 里「预置皮肤 → 执行动作 → 截图 + 回显可疑底色」（查发白/漏色特别有效） |
 | `tools/probe-settings.mjs` | 打开设置并度量弹层底色、遮罩、稳定钩子、我们那一行是否渲染 |
 | `tools/perf.mjs` | 首屏体检：boot marks / long tasks / 空闲增量 / 场景自省 |
+| `tools/startup-perf.mjs` | 真实 host 的启动体检：冷/热两轮，量「样式注入 → 场景挂载」各里程碑与首屏位图字节 |
 | `tools/probe-file.mjs` | 对本地页面求值并回显 console / 异常 |
 
 截图与探针都走 **headless Edge + CDP**，不需要 playwright（Windows 上 Edge 是系统自带的）。
