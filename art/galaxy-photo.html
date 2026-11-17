@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>galaxy photo bake</title>
+<style>
+  :root {
+    --gx-warm: rgba(255, 214, 160, 0.18);
+    --gx-cool: rgba(120, 170, 255, 0.12);
+  }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { width: 3200px; height: 1800px; }
+
+  .stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: radial-gradient(120% 90% at 62% 34%, #0b1524 0%, #050a14 48%, #010206 100%);
+  }
+
+  /* 照片本体：旋转 + 放大，让银河带斜穿画面下方 2/3 */
+  .photo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2560px;
+    height: 1280px;
+    margin-left: -1280px;
+    margin-top: -520px;
+    background-image: url("../refs/eso0932a-large.jpg");
+    background-size: cover;
+    background-position: 50% 50%;
+    transform: rotate(-13deg) scale(1.5);
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  /* 调色：压暗 + 提对比 + 收一点饱和，让文字压得住 */
+  .grade-dark .photo {
+    filter: brightness(0.64) contrast(1.2) saturate(1.08);
+  }
+  .grade-light .photo {
+    filter: brightness(0.74) contrast(1.14) saturate(1.04) hue-rotate(-6deg);
+  }
+
+  /* 暖/冷两层氛围色，模拟大气与星云色偏 */
+  .tint {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: screen;
+    background-image:
+      radial-gradient(60% 42% at 72% 30%, var(--gx-warm) 0%, rgba(0, 0, 0, 0) 68%),
+      radial-gradient(52% 40% at 26% 76%, var(--gx-cool) 0%, rgba(0, 0, 0, 0) 72%);
+  }
+
+  /* 暗角 + 上下压暗，保证 UI 文本区安静 */
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(78% 66% at 50% 58%, rgba(0, 0, 0, 0) 42%, rgba(0, 2, 6, 0.55) 82%, rgba(0, 1, 4, 0.86) 100%),
+      linear-gradient(180deg, rgba(2, 5, 12, 0.55) 0%, rgba(2, 5, 12, 0) 26%, rgba(1, 3, 9, 0) 72%, rgba(1, 3, 9, 0.72) 100%);
+  }
+
+  .label {
+    position: absolute;
+    left: 24px;
+    bottom: 16px;
+    font: 12px/1.4 "Segoe UI", system-ui, sans-serif;
+    color: rgba(255, 255, 255, 0.42);
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="photo" id="photo"></div>
+  <div class="tint"></div>
+  <div class="vignette"></div>
+</div>
+<script>
+  // tone: light | dark —— 只调 CSS 变量与 class，方便脚本截图两档
+  const tone = new URLSearchParams(location.search).get('tone') || 'dark'
+  document.getElementById('stage').classList.add('grade-' + tone)
+  if (tone === 'light') {
+    document.documentElement.style.setProperty('--gx-warm', 'rgba(255, 226, 178, 0.22)')
+    document.documentElement.style.setProperty('--gx-cool', 'rgba(110, 168, 255, 0.16)')
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>scene</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; }
+  body { color: #333; }
+</style></head>
+<body>
+<script>window.__ModuleLoader__ = { load(d) { window.__INK_DEF__ = d } }</script>
+<script src="../lib/client.js"></script>
+<script>
+(function () {
+  const React = { createElement: () => null, useState: (v) => [v, () => {}], useEffect: () => {} }
+  const registered = new Map()
+  let active = { id: 'light', colorScheme: 'light', tokens: {} }
+  const handlers = new Set()
+  const theme = {
+    register(def) { registered.set(def.id, def); return () => registered.delete(def.id) },
+    getTheme() { return { preference: active.id, fontSizes: {}, fontFamilies: {}, active, themes: [], revision: 0 } },
+    setTheme(id) {
+      active = registered.get(id) || { id, colorScheme: 'light', tokens: {} }
+      handlers.forEach((fn) => fn())
+    },
+  }
+  const ctx = {
+    theme,
+    effect(fn) { fn() },
+    on(e, fn) { if (e === 'theme/change') handlers.add(fn) },
+    slots: { inject(k, cb) { cb() }, register() { return () => {} } },
+  }
+  window.__INK_DEF__.factory((n) => { if (n === 'react') return React; throw new Error(n) }).apply(ctx)
+  const q = new URLSearchParams(location.search)
+  theme.setTheme(q.get('theme') === 'night' ? 'ink-night' : 'ink-dawn')
+  window.__SET__ = (id) => theme.setTheme(id)
+})()
+</script>
+</body></html>

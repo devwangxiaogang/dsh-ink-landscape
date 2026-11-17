@@ -1,0 +1,18 @@
+# 依赖与产物
+node_modules/
+.pnpm-store/
+
+# 本地生成的截图 / 性能采样 / 草稿
+.shots/
+.perf-*/
+.scratch/
+*.log
+
+# 参考素材：ESO 原始照片体积大且并非本仓库所有，
+# 需要时按 README「素材与许可」里的链接自行下载到 refs/
+refs/
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini

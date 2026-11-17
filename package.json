@@ -1,0 +1,58 @@
+{
+  "name": "dsh-ink-landscape",
+  "version": "0.2.2",
+  "description": "DSH 皮肤插件：宣纸水墨山水（溪山书斋）与真实银河照片的星空皮肤（星河渡），可在 设置→通用 一键切换，附纯 CSS 动效与性能护栏。",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devwangxiaogang/dsh-ink-landscape.git"
+  },
+  "homepage": "https://github.com/devwangxiaogang/dsh-ink-landscape#readme",
+  "bugs": {
+    "url": "https://github.com/devwangxiaogang/dsh-ink-landscape/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "skin",
+    "ink-wash",
+    "chinese",
+    "galaxy",
+    "milky-way"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./assets/*": "./lib/assets/*"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

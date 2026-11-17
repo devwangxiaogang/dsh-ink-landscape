@@ -1,0 +1,12 @@
+# 溪山无尽 · dsh-ink-landscape
+#
+# One row, named exactly like the package: the loader mounts the browser half of
+# a package on the row whose specifier is that package name, so this row is what
+# brings lib/client.js (token layer, landscape scene, 印章, settings row) into
+# the web shell.
+#
+# 皮肤装好即生效（浅色=晨岚 / 深色=夜山），开关与云雾动效在
+# 「设置 → 通用 → 山水皮肤」里，偏好存在 localStorage，不需要在这里配置。
+- insert:
+    - id: dsh-ink-landscape
+      name: dsh-ink-landscape

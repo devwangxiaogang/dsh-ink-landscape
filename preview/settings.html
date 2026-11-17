@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>设置项预览 · 山水皮肤</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  html {
+    --dsw-font-family: var(--dsh-font-family-text, var(--dsh-font-family-text-default));
+    --dsw-font-mono: var(--dsh-font-family-code, var(--dsh-font-family-code-default));
+  }
+  body {
+    background: var(--dsw-alias-bg-base);
+    color: var(--dsw-alias-label-primary);
+    font-family: var(--dsw-font-family, "SimSun", serif);
+    font-size: 14px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .frame, .root, .host { min-height: 100%; background: var(--dsw-alias-bg-base); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 44px 28px; }
+  .card {
+    background: var(--dsw-alias-bg-layer-1);
+    border: 0.5px solid var(--dsw-alias-border-l1);
+    border-radius: var(--dsw-radius-md);
+    padding: 4px 18px;
+    box-shadow: var(--dsw-shadow-lv1);
+  }
+  .card h3 {
+    margin: 14px 0 10px; font-size: 13px; letter-spacing: .08em;
+    color: var(--dsw-alias-label-secondary); font-weight: 500;
+    font-family: "Kaiti SC", KaiTi, STKaiti, "Songti SC", serif;
+  }
+  .divider { height: 0.5px; background: var(--dsw-alias-border-l1); }
+  .fake-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 13px 0;
+  }
+  .fake-row__title { font-size: 13.5px; }
+  .fake-row__hint { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+  .fake-btn {
+    height: 26px; padding: 0 12px; border-radius: var(--dsw-radius-xs);
+    border: 0.5px solid var(--dsw-alias-border-l2);
+    background: var(--dsw-alias-bg-layer-2);
+    color: var(--dsw-alias-label-secondary); font: inherit; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="frame"><div class="root"><div class="host">
+  <div class="wrap">
+    <div class="card">
+      <h3>通用</h3>
+      <div class="divider"></div>
+      <div class="fake-row">
+        <div>
+          <div class="fake-row__title">外观主题</div>
+          <div class="fake-row__hint">跟随系统 · 浅色 / 深色</div>
+        </div>
+        <button class="fake-btn">自动</button>
+      </div>
+      <div class="divider"></div>
+      <!-- 本插件往 settings.general.item 贡献的那一行渲染在这里 -->
+      <div id="ink-row-host"></div>
+      <div class="divider"></div>
+      <div class="fake-row">
+        <div>
+          <div class="fake-row__title">发送快捷键</div>
+          <div class="fake-row__hint">Enter 发送 · Shift+Enter 换行</div>
+        </div>
+        <button class="fake-btn">Enter</button>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<script>window.__ModuleLoader__ = { load(def) { window.__INK_DEF__ = def } }</script>
+<script src="../lib/client.js"></script>
+<script>
+(function () {
+  /* ---- a micro renderer: the row only uses div/span/button + className ---- */
+  const SVG_NS = 'http://www.w3.org/2000/svg'
+  function render(node) {
+    if (node === null || node === undefined || node === false) return document.createTextNode('')
+    if (typeof node === 'string' || typeof node === 'number') return document.createTextNode(String(node))
+    if (Array.isArray(node)) {
+      const frag = document.createDocumentFragment()
+      node.forEach((child) => frag.appendChild(render(child)))
+      return frag
+    }
+    // Function components: call them (hooks replay positions 0..n on each pass).
+    if (typeof node.type === 'function') return render(node.type(node.props || {}))
+    const el = node.type === 'svg' ? document.createElementNS(SVG_NS, 'svg') : document.createElement(node.type)
+    const props = node.props || {}
+    for (const [key, value] of Object.entries(props)) {
+      if (key === 'children' || value === undefined || value === null) continue
+      if (key === 'className') el.setAttribute('class', String(value))
+      else if (key === 'style' && typeof value === 'object') Object.assign(el.style, value)
+      else if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2).toLowerCase(), value)
+      else el.setAttribute(key, String(value))
+    }
+    ;(node.children || []).forEach((child) => el.appendChild(render(child)))
+    return el
+  }
+
+  /* ---- minimal hooks, enough for the row ---- */
+  const states = []
+  let cursor = 0
+  const React = {
+    createElement: (type, props, ...children) => ({ type, props, children: children.flat() }),
+    useState: (initial) => {
+      const index = cursor++
+      if (!(index in states)) states[index] = initial
+      return [states[index], (next) => {
+        states[index] = typeof next === 'function' ? next(states[index]) : next
+        rerender()
+      }]
+    },
+    useEffect: (fn) => { fn() },
+  }
+
+  const layers = new Map()
+  const handlers = new Set()
+  let scheme = new URLSearchParams(location.search).get('scheme') === 'dark' ? 'dark' : 'light'
+  const composeTokens = () => {
+    const out = {}
+    for (const pairs of layers.values()) {
+      for (const [token, pair] of Object.entries(pairs)) out[token] = pair[scheme] ?? pair.light
+    }
+    return out
+  }
+  const theme = {
+    register: () => () => {},
+    overrideTokens(source, pairs) {
+      layers.set(source, pairs)
+      publish()
+      return () => { layers.delete(source); publish() }
+    },
+    getTheme: () => ({
+      preference: 'system', fontSizes: {}, fontFamilies: {},
+      active: { id: 'system', colorScheme: scheme, tokens: composeTokens() },
+      themes: [], revision: 0,
+    }),
+    on: () => {},
+  }
+  const registered = []
+  const ctx = {
+    theme,
+    effect: (fn) => fn(),
+    on: (event, fn) => { if (event === 'theme/change') handlers.add(fn) },
+    slots: {
+      inject: (key, cb) => cb(),
+      register(options, Component) {
+        registered.push({ options, Component })
+        return () => {}
+      },
+    },
+    logger: console,
+  }
+
+  let applied = []
+  function publish() {
+    const snapshot = theme.getTheme()
+    for (const name of applied) document.body.style.removeProperty(name)
+    applied = Object.keys(snapshot.active.tokens)
+    for (const [name, value] of Object.entries(snapshot.active.tokens)) document.body.style.setProperty(name, value)
+    document.documentElement.style.colorScheme = snapshot.active.colorScheme
+    document.body.toggleAttribute('data-ds-dark-theme', snapshot.active.colorScheme === 'dark')
+    handlers.forEach((fn) => fn())
+    rerender()
+  }
+
+  const mod = window.__INK_DEF__.factory((name) => {
+    if (name === 'react') return React
+    throw new Error('unexpected require: ' + name)
+  })
+  mod.apply(ctx)
+
+  function rerender() {
+    // Looked up lazily: publish() runs inside apply(), before this script's
+    // top-level statements below it have executed.
+    const host = document.getElementById('ink-row-host')
+    // Looked up lazily: the skin's own apply() publishes tokens before the row
+    // exists, and `publish()` calls back into here.
+    const row = registered.find((entry) => entry.options.name === 'settings.general.item')
+    if (!row) return
+    cursor = 0
+    host.replaceChildren(render(row.Component({})))
+  }
+
+  publish()
+  window.__INK__ = { registered, theme, publish }
+})()
+</script>
+</body>
+</html>

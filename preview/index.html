@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>皮肤预览 · 山水 / 银河</title>
+<style>
+  /* ------------------------------------------------------------------
+     Mock of the shipped shell, for previewing the skins offline.
+     The only things it must get right:
+       1. `--dsw-*` alias tokens drive every surface (as the theme runtime
+          applies them to <body>);
+       2. `--dsw-alias-bg-base` is painted on FOUR nested full-height
+          layers (body > frame > root > host), exactly like the real app,
+          so alpha tuning transfers 1:1;
+       3. nothing here styles the brand or headings — those belong to the
+          plugin, so switching family visibly changes them.
+     ------------------------------------------------------------------ */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  html {
+    --dsw-font-family: var(--dsh-font-family-text, "SimSun", serif);
+    --dsw-font-mono: var(--dsh-font-family-code, Consolas, monospace);
+  }
+  body {
+    margin: 0;
+    background: var(--dsw-alias-bg-base);
+    color: var(--dsw-alias-label-primary);
+    font-family: var(--dsw-font-family);
+    font-size: 14px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .frame, .root, .host { height: 100%; background: var(--dsw-alias-bg-base); }
+  .app { position: relative; display: flex; height: 100vh; }
+
+  .side {
+    width: 268px; flex: none; height: 100%;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 14px 10px;
+    background: var(--dsw-specific-sidebar-fill);
+    backdrop-filter: blur(22px) saturate(120%);
+    border-right: 0.5px solid var(--dsw-alias-border-l1);
+  }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 14px; min-height: 34px; }
+  .brand__mark, .brand__name { display: flex; align-items: center; }
+  .nav {
+    display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+    border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-label-secondary);
+    font-size: 13px;
+  }
+  .nav[data-active] { background: var(--dsw-specific-sidebar-nav-item-active); color: var(--dsw-alias-label-primary); }
+  .nav i { width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-state-idle-primary); opacity: .6; }
+  .nav[data-active] i { background: var(--dsw-alias-brand-primary); opacity: 1; }
+  .side__foot { margin-top: auto; padding: 10px 8px 4px; font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+
+  .main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    flex: none; display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 22px; border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+    font-size: 12.5px; color: var(--dsw-alias-label-tertiary);
+  }
+  .doc { flex: 1 1 auto; overflow: hidden; padding: 26px 30px 0; }
+  .doc__inner { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 27px; line-height: 1.5; margin: 6px 0 14px; }
+  h2 { font-size: 19px; margin: 22px 0 8px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--dsw-alias-label-secondary); font-size: 13px; }
+  .bubble {
+    margin: 16px 0; padding: 14px 16px; border-radius: var(--dsw-radius-md);
+    background: var(--dsw-specific-bubble);
+    border: 0.5px solid var(--dsw-alias-border-l1);
+    box-shadow: var(--dsw-shadow-lv1);
+  }
+  .quote {
+    border-left: 2px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 60%, transparent);
+    padding: 2px 0 2px 12px; color: var(--dsw-alias-label-secondary); font-size: 13.5px;
+  }
+  pre {
+    margin: 12px 0; padding: 12px 14px; border-radius: var(--dsw-radius-sm);
+    background: var(--dsw-alias-markdown-code-block);
+    border: 0.5px solid var(--dsw-alias-border-l1);
+    font-family: var(--dsw-font-mono);
+    font-size: 12px; line-height: 1.6; color: var(--dsw-alias-label-secondary); overflow: hidden;
+  }
+  .card {
+    margin: 14px 0; padding: 12px 14px; border-radius: var(--dsw-radius-md);
+    background: var(--dsw-alias-card-fill); border: 0.5px solid var(--dsw-alias-border-l2);
+    display: flex; gap: 12px; align-items: center;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+    border-radius: 999px; font-size: 11.5px;
+    background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground);
+  }
+  .composer {
+    flex: none; margin: 0 auto 18px; width: min(760px, calc(100% - 60px));
+    border-radius: var(--dsw-radius-lg); padding: 12px 14px;
+    background: var(--dsw-specific-input-major);
+    border: 0.5px solid var(--dsw-alias-border-l2);
+    box-shadow: var(--dsw-shadow-lv2);
+    color: var(--dsw-alias-label-tertiary);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .composer span:last-child {
+    padding: 4px 12px; border-radius: var(--dsw-radius-sm); font-size: 12px;
+    background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground);
+  }
+  /* preview-only switcher (not part of the plugin) */
+  .switch {
+    position: fixed; right: 14px; bottom: 14px; z-index: 5;
+    display: flex; gap: 6px; padding: 5px; border-radius: 8px;
+    background: color-mix(in srgb, var(--dsw-alias-bg-overlay) 86%, transparent);
+    border: 0.5px solid var(--dsw-alias-border-l2); box-shadow: var(--dsw-shadow-lv2);
+    font-size: 12px;
+  }
+  .switch button {
+    appearance: none; border: 0; background: transparent; color: var(--dsw-alias-label-secondary);
+    font: inherit; padding: 3px 10px; border-radius: 5px; cursor: pointer;
+  }
+  .switch button[aria-pressed="true"] { background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-brand-primary); }
+  .switch em { width: 1px; background: var(--dsw-alias-border-l2); margin: 2px 1px; }
+</style>
+</head>
+<body>
+<div class="frame"><div class="root"><div class="host">
+  <div class="app">
+    <aside class="side">
+      <div class="brand">
+        <div class="brand__mark" id="brand-mark"></div>
+        <div class="brand__name" id="brand-name"></div>
+      </div>
+      <div class="nav" data-active><i></i>新建对话</div>
+      <div class="nav"><i></i>工作区 · xgworkspace</div>
+      <div class="nav"><i></i>皮肤主题</div>
+      <div class="nav"><i></i>插件市场</div>
+      <div class="side__foot" id="foot">水墨氤氲 · 远山如黛</div>
+    </aside>
+    <main class="main">
+      <div class="topbar"><span id="crumb">xgworkspace · 溪山无尽</span><span id="meta">宋体 · 宣纸</span></div>
+      <div class="doc">
+        <div class="doc__inner" id="doc"></div>
+      </div>
+      <div class="composer"><span id="placeholder">落笔于此…</span><span>发送</span></div>
+    </main>
+  </div>
+</div></div></div>
+
+<div class="switch" id="switch">
+  <button type="button" data-family="default">原皮肤</button>
+  <button type="button" data-family="ink">山水</button>
+  <button type="button" data-family="galaxy">银河</button>
+  <em></em>
+  <button type="button" data-tone="light">浅色</button>
+  <button type="button" data-tone="dark">深色</button>
+  <em></em>
+  <button type="button" data-motion="on">动效</button>
+</div>
+
+<script>
+  /* ---- module-loader shim: capture the factory instead of running it ---- */
+  window.__ModuleLoader__ = { load(def) { window.__INK_DEF__ = def } }
+</script>
+<script src="../lib/client.js"></script>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search)
+
+  /* ---------------- a very small React stand-in ---------------- */
+  let hooks = []
+  let hookIndex = 0
+  function useState(initial) {
+    const at = hookIndex++
+    if (!(at in hooks)) hooks[at] = typeof initial === 'function' ? initial() : initial
+    return [hooks[at], (next) => {
+      const value = typeof next === 'function' ? next(hooks[at]) : next
+      // React bails out on an identical value; our toy renderer must too,
+      // otherwise a component that re-asserts its state recurses forever.
+      if (Object.is(value, hooks[at])) return
+      hooks[at] = value
+      rerender()
+    }]
+  }
+  function useEffect(fn) {
+    hookIndex++
+    const cleanup = fn()
+    if (typeof cleanup === 'function') effects.push(cleanup)
+  }
+  const React = { createElement: (type, props, ...children) => ({ type, props, children }), useState, useEffect }
+  const effects = []
+
+  const SVG_NS = 'http://www.w3.org/2000/svg'
+  function render(node) {
+    if (node == null || node === false) return document.createTextNode('')
+    if (typeof node === 'string' || typeof node === 'number') return document.createTextNode(String(node))
+    if (Array.isArray(node)) {
+      const frag = document.createDocumentFragment()
+      node.flat(Infinity).forEach((child) => frag.append(render(child)))
+      return frag
+    }
+    if (typeof node.type === 'function') return render(node.type(node.props || {}))
+    const el = node.type === 'svg' ? document.createElementNS(SVG_NS, 'svg') : document.createElement(node.type)
+    for (const [key, value] of Object.entries(node.props || {})) {
+      if (key === 'children' || value == null || value === false) continue
+      if (key === 'style' && typeof value === 'object') Object.assign(el.style, value)
+      else if (key === 'className') el.setAttribute('class', value)
+      else if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2).toLowerCase(), value)
+      else el.setAttribute(key, value === true ? '' : String(value))
+    }
+    ;(node.children || []).flat(Infinity).forEach((child) => el.append(render(child)))
+    return el
+  }
+
+  /* ---------------- shell stand-ins ---------------- */
+  const layers = new Map()
+  const handlers = new Set()
+  let scheme = params.get('scheme') === 'dark' ? 'dark' : 'light'
+
+  function composeTokens() {
+    const out = {}
+    for (const pairs of layers.values()) {
+      for (const [token, pair] of Object.entries(pairs)) out[token] = pair[scheme] ?? pair.light
+    }
+    return out
+  }
+
+  const theme = {
+    register() { return () => {} },
+    overrideTokens(source, pairs) {
+      layers.set(source, pairs)
+      publish()
+      return () => { layers.delete(source); publish() }
+    },
+    getTheme() {
+      return {
+        preference: 'system',
+        fontSizes: {},
+        fontFamilies: {},
+        active: { id: 'system', colorScheme: scheme, tokens: composeTokens() },
+        themes: [],
+        revision: 0,
+      }
+    },
+    on() {},
+  }
+
+  const registered = []
+  const ctx = {
+    theme,
+    effect(fn) { effects.push(fn()) },
+    on(event, fn) { if (event === 'theme/change') handlers.add(fn) },
+    slots: {
+      inject(key, cb) { cb() },
+      register(options, Component) {
+        const entry = { options, Component }
+        registered.push(entry)
+        // A disposer is how the plugin gives 原皮肤 its shipped brand back.
+        return () => {
+          const at = registered.indexOf(entry)
+          if (at >= 0) registered.splice(at, 1)
+          paintChrome()
+        }
+      },
+    },
+    logger: console,
+  }
+
+  let applied = []
+  function publish() {
+    const snapshot = theme.getTheme()
+    const tokens = snapshot.active.tokens
+    const body = document.body
+    for (const name of applied) body.style.removeProperty(name)
+    applied = Object.keys(tokens)
+    for (const [name, value] of Object.entries(tokens)) body.style.setProperty(name, value)
+    document.documentElement.style.colorScheme = snapshot.active.colorScheme
+    body.toggleAttribute('data-ds-dark-theme', snapshot.active.colorScheme === 'dark')
+    handlers.forEach((fn) => fn())
+    paintChrome()
+  }
+
+  /* ---------------- run the plugin ---------------- */
+  window.__INK__ = { theme, layers, registered, publish, skin: null, get scheme() { return scheme } }
+  const mod = window.__INK_DEF__.factory((name) => {
+    if (name === 'react') return React
+    throw new Error('unexpected require: ' + name)
+  })
+  try {
+    mod.apply(ctx)
+  } catch (err) {
+    // Surfaced loudly: a throwing apply() leaves the page half-styled.
+    console.error('[ink] apply failed:', err && err.message, err && err.stack)
+    document.title = 'apply failed: ' + (err && err.message)
+  }
+  if (params.get('double') === '1') mod.apply(ctx)
+
+  // The plugin publishes the preview face while applying, so read it afterwards.
+  const skin = mod.__art.skin
+
+  if (params.get('family')) skin.setFamily(params.get('family'))
+  if (params.get('tone')) { scheme = params.get('tone') === 'dark' ? 'dark' : 'light'; publish() }
+  if (params.get('motion') === 'on') skin.setMotion(true)
+
+  /* ---------------- paint the mock chrome from plugin state ---------------- */
+  const COPY = {
+    default: {
+      crumb: 'xgworkspace', meta: '跟随系统', foot: 'DeepSeek Harness',
+      placeholder: '描述你想要构建的内容…',
+      h1: '原皮肤 · 无插件',
+      lede: '不透明面板、默认字体、默认配色 —— 选择「原皮肤」时本插件不加任何修饰。',
+      h2: '切换方式',
+      p: '在「设置 → 通用 → 皮肤主题」里选「原皮肤」，或在预览页右下角点一下。皮肤只改写 <code>--dsw-*</code> 变量与自己的图层，不碰应用逻辑。',
+      quote: '不选皮肤，就是出厂状态。',
+      pill: '默认',
+      pillText: '系统配色 · 系统字体 · 100% 不透明',
+      vars: '--dsw-alias-bg-base: 出厂值;   /* 插件已 detach，全部交还给应用 */\n--dsw-alias-brand-primary: 出厂值;',
+      placeholderFoot: '跟随系统 · 无皮肤',
+    },
+    ink: {
+      crumb: 'xgworkspace · 溪山无尽', meta: '宋体 · 宣纸', foot: '水墨氤氲 · 远山如黛',
+      placeholder: '落笔于此…',
+      h1: '溪山无尽图 · 沉浸式中国山水',
+      lede: '宣纸的暖白、淡墨的远山、朱砂的印章，以及一层缓慢流动的烟岚。',
+      h2: '夜间模式 · 夜山浓墨',
+      p: '换成夜色时，纸转为浓墨，月色从右上角晕开，江面浮起一叶乌篷船。',
+      quote: '「仁者乐山，智者乐水。」',
+      pill: '沉浸',
+      pillText: '云雾流动 · 舟楫轻摇 · 山峦渐显',
+      vars: '--dsw-alias-bg-base: rgba(250, 247, 239, 0.12);  /* 四层叠加 → 纸面 0.40 */\n--dsw-specific-sidebar-fill: rgba(250, 247, 239, 0.30);\n--dsw-alias-brand-primary: #a8362a;              /* 朱砂 */',
+    },
+    galaxy: {
+      crumb: 'xgworkspace · 星河渡', meta: '无衬线 · 深空', foot: '星河悬天 · 群星如尘',
+      placeholder: '写下你的坐标…',
+      h1: '银河悬天 · 深空漫游',
+      lede: '一条银河带斜贯天幕，左上角标着太阳系，右下角一枚透镜放大出地球的位置。',
+      h2: '标注 · 我们在哪里',
+      p: '太阳系在猎户臂上，距银心约 2.6 万光年；地球只是太阳系第三颗行星 —— 两个标注一直保持在画面上，随主题自动切换深浅。',
+      quote: '「仰观宇宙之大，俯察品类之盛。」',
+      pill: '深空',
+      pillText: '星尘缓缓漂移 · 轨道 36 秒一圈 · 纯 CSS 合成',
+      vars: '--dsw-alias-bg-base: rgba(7, 11, 20, 0.10);   /* 星图几乎透出 */\n--dsw-alias-brand-primary: #7fd4e8;             /* 星蓝 */\n--gx-drift-far: 340s linear infinite;           /* 只动 transform */',
+    },
+  }
+
+  function paintChrome() {
+    // publish() runs *inside* apply(): the skin face does not exist yet.
+    const skin = window.__INK__ && window.__INK__.skin
+    if (!skin) return
+    const state = skin.state()
+    const copy = COPY[state.family] || COPY.default
+    document.getElementById('crumb').textContent = copy.crumb
+    document.getElementById('meta').textContent = copy.meta
+    document.getElementById('foot').textContent = copy.foot
+    document.getElementById('placeholder').textContent = copy.placeholder
+    document.getElementById('doc').innerHTML = `
+      <h1>${copy.h1}</h1>
+      <p class="muted">${copy.lede}</p>
+      <div class="bubble">
+        <p>${copy.p}</p>
+        <div class="quote">${copy.quote}</div>
+      </div>
+      <h2>${copy.h2}</h2>
+      <p>皮肤分成三层：配色（<code>--dsw-*</code> 变量）、场景（固定背景层）、组件（印章与设置行）。三层都可以单独关掉，不影响主功能。</p>
+      <div class="card"><span class="pill">${copy.pill}</span><span class="muted">${copy.pillText}</span></div>
+      <pre>${copy.vars}</pre>`
+
+    // brand slots: whatever the plugin registered for sidebar.brand.{mark,name}
+    for (const [slot, hostId] of [['sidebar.brand.mark', 'brand-mark'], ['sidebar.brand.name', 'brand-name']]) {
+      const host = document.getElementById(hostId)
+      host.replaceChildren()
+      const entry = registered.find((r) => r.options.name === slot)
+      if (!entry) continue
+      hookIndex = 0
+      host.append(render(entry.Component(slot === 'sidebar.brand.mark' ? { size: 26 } : {})))
+    }
+
+    document.querySelectorAll('#switch button').forEach((btn) => {
+      const on = btn.dataset.family
+        ? btn.dataset.family === state.family
+        : btn.dataset.tone
+          ? btn.dataset.tone === state.tone
+          : btn.dataset.motion
+            ? btn.dataset.motion === 'on' && state.motion
+            : false
+      btn.setAttribute('aria-pressed', String(on))
+    })
+  }
+
+  function rerender() {
+    hooks = hooks.slice()   // keep values, reset read cursor on next paint
+    paintChrome()
+  }
+  skin.subscribe(paintChrome)
+
+  document.querySelectorAll('#switch button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.family) skin.setFamily(btn.dataset.family)
+      else if (btn.dataset.tone) { scheme = btn.dataset.tone; publish() }
+      else if (btn.dataset.motion) skin.setMotion(!skin.state().motion)
+    })
+  })
+
+  window.__INK__.skin = skin
+  publish()
+})()
+</script>
+</body>
+</html>

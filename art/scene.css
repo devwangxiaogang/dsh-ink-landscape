@@ -1,0 +1,38 @@
+html[data-ink-skin="dawn"] {
+  --ink-far: #7d95a8;
+  --ink-mid: #2f424d;
+  --ink-near: #17212a;
+  --ink-water: #bfc0b3;
+  --ink-branch: #3b332a;
+  --ink-mist: #fffdf4;
+  --ink-hush: #fffdf4;
+  --ink-sun: #ffe8b4;
+  --ink-sky-top: #fffdf8;
+  --ink-sky-mid: #fbf7ee;
+  --ink-sky-low: #f0eade;
+  --ink-wash-far-1: 0.44;
+  --ink-wash-far-2: 0.26;
+  --ink-wash-mid-1: 0.78;
+  --ink-wash-mid-2: 0.5;
+  --ink-wash-near-1: 0.95;
+  --ink-wash-near-2: 0.62;
+}
+html[data-ink-skin="night"] {
+  --ink-far: #2b3d4c;
+  --ink-mid: #16222b;
+  --ink-near: #05080a;
+  --ink-water: #1b2831;
+  --ink-branch: #c3d4e0;
+  --ink-mist: #26343f;
+  --ink-hush: #0b1218;
+  --ink-sun: #f2ecdb;
+  --ink-sky-top: #101820;
+  --ink-sky-mid: #131b21;
+  --ink-sky-low: #2b3946;
+  --ink-wash-far-1: 0.5;
+  --ink-wash-far-2: 0.32;
+  --ink-wash-mid-1: 0.8;
+  --ink-wash-mid-2: 0.55;
+  --ink-wash-near-1: 0.97;
+  --ink-wash-near-2: 0.7;
+}

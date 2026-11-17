@@ -1,0 +1,25 @@
+/*
+  Galaxy palette used only by the bake step (tools/bake-art.mjs).
+  Two tones -> two rasters: light = 暮色深空, dark = 子夜银河.
+  The plugin never loads this file; it only carries the CSS variables that
+  art/galaxy.svg references.
+*/
+html[data-ink-skin="light"] {
+  --gx-0: #070d1a;
+  --gx-1: #0f1c33;
+  --gx-2: #1d3358;
+  --gx-core: #dbe9ff;
+  --gx-dust: #050810;
+  --gx-tint-a: #2f6fb0;
+  --gx-tint-b: #6a4fa8;
+}
+
+html[data-ink-skin="dark"] {
+  --gx-0: #02040a;
+  --gx-1: #060c17;
+  --gx-2: #0d1a2d;
+  --gx-core: #eaf3ff;
+  --gx-dust: #010206;
+  --gx-tint-a: #24587f;
+  --gx-tint-b: #4a3a7a;
+}
