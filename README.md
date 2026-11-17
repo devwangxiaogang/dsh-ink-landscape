@@ -58,35 +58,63 @@ DSH 的界面完全由一套 `--dsw-*` 设计令牌驱动。这个插件不去�
 
 ## 三、安装
 
-需要：DSH 桌面版（web 前端）+ Node.js ≥ 20。
+需要：DSH 桌面版（web 前端）+ Node.js ≥ 20 + pnpm。
+
+### 方式 A：直接从 GitHub 装（推荐）
+
+DSH 的 `desktop` profile 由 Electron 管理，`dsh plugin --profile desktop add` 会被拒绝，
+所以直接在该 profile 目录里用 pnpm 装，再把包装进 `dsh.profile.bundles`：
+
+```bash
+cd "$DSH_HOME/profiles/desktop"          # Windows 默认 %USERPROFILE%\AppData\Roaming\dsh 之外，看你的安装
+pnpm add "github:devwangxiaogang/dsh-ink-landscape#v0.2.2"
+```
+
+然后编辑同一个 `package.json`，在 `dsh.profile.bundles` 末尾加一行（**这一步不能少**，
+loader 只会挂载列在这个数组里的包）：
+
+```jsonc
+"dsh": { "profile": { "bundles": [ /* … */, "dsh-ink-landscape" ] } }
+```
+
+**重启 DSH**，插件就出现在「设置 → 通用 → 皮肤主题」。
+
+升级：把 `#v0.2.2` 换成新 tag 再 `pnpm add` 一次即可（或用 `pnpm update dsh-ink-landscape`）。
+
+### 方式 B：克隆到本地再 link（改代码时用）
 
 ```bash
 git clone https://github.com/devwangxiaogang/dsh-ink-landscape.git
 cd dsh-ink-landscape
-node tools/profile-link.mjs install --profile desktop   # 默认就是 desktop
+node tools/profile-link.mjs install --profile desktop
 ```
 
-然后**重启 DSH**。插件会自己出现在「设置 → 通用 → 皮肤主题」。
-
-`install` 做的事全部可逆（并会自动备份 `package.json`）：
+`install` 做的事全部可逆（会自动备份 `package.json`）：
 
 1. 在 profile 的 `dependencies` 里加 `"dsh-ink-landscape": "link:<本仓库路径>"`；
 2. 在 `dsh.profile.bundles` 里追加 `dsh-ink-landscape`；
 3. 建 `node_modules/dsh-ink-landscape` 目录联接。
 
-卸载：
+改 `lib/client.js` 保存即生效（宿主每次请求都读盘），只有改 `package.json` / 换包才需要重启。
+
+### 卸载
 
 ```bash
-node tools/profile-link.mjs uninstall --profile desktop
-node tools/profile-link.mjs status --profile desktop     # 随时查看当前状态
+cd "$DSH_HOME/profiles/desktop"
+pnpm remove dsh-ink-landscape          # 方式 A
+node tools/profile-link.mjs uninstall --profile desktop   # 方式 B
 ```
 
-<details>
-<summary>手动安装（不想跑脚本）</summary>
+两种方式都记得把 `dsh.profile.bundles` 里那一行删掉（脚本会自动删，手动装的要自己删），
+然后重启 DSH。皮肤卸载后 DSH 完全回到出厂外观，不留任何痕迹。
 
-编辑 `%DSH_HOME%\profiles\<profile>\package.json`：
+<details>
+<summary>手动安装（不跑脚本、不联网）</summary>
+
+把仓库下载/解压到任意目录，然后：
 
 ```jsonc
+// %DSH_HOME%/profiles/<profile>/package.json
 {
   "dependencies": {
     "dsh-ink-landscape": "link:D:/path/to/dsh-ink-landscape"
