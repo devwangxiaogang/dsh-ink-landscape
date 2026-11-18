@@ -96,6 +96,8 @@
       if (key === 'className') el.setAttribute('class', String(value))
       else if (key === 'style' && typeof value === 'object') Object.assign(el.style, value)
       else if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2).toLowerCase(), value)
+      // disabled / checked 这类布尔属性：用属性而非 setAttribute，否则 disabled=false 也会真禁用。
+      else if (typeof value === 'boolean' && key in el && /^(disabled|checked|readOnly|hidden)$/.test(key)) el[key] = value
       else el.setAttribute(key, String(value))
     }
     ;(node.children || []).forEach((child) => el.appendChild(render(child)))

@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
 [![Assets: CC BY 4.0](https://img.shields.io/badge/assets-CC%20BY%204.0-blue.svg)](NOTICE.md)
 [![Platform: DSH web](https://img.shields.io/badge/platform-DSH%20web-4a7f6b.svg)](#兼容性)
-[![Version](https://img.shields.io/badge/version-0.3.0-a8362a.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.1-a8362a.svg)](package.json)
 
 ![山水 · 浅色（宣纸晨岚）](docs/hero-light.webp)
 
@@ -73,12 +73,12 @@ DSH 的界面完全由一套 `--dsw-*` 设计令牌驱动。这个插件不去�
 
 ### 方式 A：直接从 GitHub 装（推荐）
 
-DSH 的 `desktop` profile 由 Electron 管理，`dsh plugin --profile desktop add` 会被拒绝，
+DSH 的 profile 由 loader 管理，`dsh plugin add` 在 `desktop` profile 上会被拒绝，
 所以直接在该 profile 目录里用 pnpm 装，再把包装进 `dsh.profile.bundles`：
 
 ```bash
 cd "$DSH_HOME/profiles/desktop"          # Windows 默认 %USERPROFILE%\AppData\Roaming\dsh 之外，看你的安装
-pnpm add "github:devwangxiaogang/dsh-ink-landscape#v0.2.3"
+pnpm add "github:devwangxiaogang/dsh-ink-landscape#v0.3.1"
 ```
 
 然后编辑同一个 `package.json`，在 `dsh.profile.bundles` 末尾加一行（**这一步不能少**，
@@ -90,7 +90,11 @@ loader 只会挂载列在这个数组里的包）：
 
 **重启 DSH**，插件就出现在「设置 → 通用 → 皮肤主题」。
 
-升级：把 `#v0.2.3` 换成新 tag 再 `pnpm add` 一次即可（或用 `pnpm update dsh-ink-landscape`）。
+`profiles/web`（`dsh web` 用的那一份）同理，把目录换成 `profiles/web` 即可 —— 两个 profile 各有一份
+依赖，想让两边都换皮肤就都装一次。
+
+升级：把 `#v0.3.1` 换成新 tag 再 `pnpm add` 一次即可（或用 `pnpm update dsh-ink-landscape`）。
+只改 `lib/client.js` 这类运行时文件不必重启（宿主每次请求都读盘）；换 tag、改 `package.json` 才需要。
 
 ### 方式 B：克隆到本地再 link（改代码时用）
 
@@ -154,9 +158,14 @@ New-Item -ItemType Junction `
 * **动效开关**：同一行右侧的圆点（默认开）。关掉只留静态画面；系统设了「减少动态效果」时自动压掉。
 * **跟随明暗**：皮肤自己组两套令牌（light / dark），DSH 切明暗时画面与配色一起换，不需要重新选皮肤。
 * **偏好存放**：`localStorage` 的 `dsh-ink-landscape:skin` 与 `:motion`，不写入 DSH 设置，不会和主题设置打架。
-* **实时天气**（0.3.0，只作用于山水）：同一行下方多一条天气设置 —— 开关 + 「城市」输入框（留空则按系统时区猜）。
+* **实时天气**（0.3.0 起，只作用于山水）：同一行下方多一条天气设置 —— 开关 + 「城市」输入框（留空则按系统时区猜）。
+  左边那行小字说明画面从哪来：
+  * `晴 · 上海 · 刚更新` —— 刚取到的实况；`雨 · 杭州 · 缓存` —— 这次没连上，用上次的快照；
+  * `正在取天气…` / `取不到天气 · 保持晴天` / `省流量模式 · 不联网` / `关 · 底图固定为晴天` —— 其余四种。
+* **它往外发什么**：只有纬经度（填了城市的话，多一次城市名查询）。Open-Meteo 免费、免 key、免账号，
+  请求不带 cookie，也不含任何本机信息。不想联网就把这个开关关掉 —— 画面固定晴天，其余功能照常。
 
-## 四·五、天气怎么驱动画面
+## 五、天气怎么驱动画面
 
 选了山水、天气开关打开时，画面每天象一张图，切换是 1.5 s 的交叉淡入：
 
@@ -173,7 +182,7 @@ New-Item -ItemType Junction `
 * **失败即回退**：请求失败、字段缺失、`prefers-reduced-motion`、关掉动效开关 —— 任何一种都退回静态底图，画面不会空。
 
 
-## 五、实现要点（踩过的坑）
+## 六、实现要点（踩过的坑）
 
 ### 为什么不用 `ctx.theme.register()`
 
@@ -229,7 +238,7 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 | 雪片 · 近 / 远 | 同上，方向略斜 | 7 s / 11 s |
 修过的两处每帧开销：流星原来用 `filter: drop-shadow`（每帧重算滤镜）→ 把光晕画进第二层渐变；闪烁层加 `translate3d` 单独提层。
 
-## 六、性能实测
+## 七、性能实测
 
 无头 Edge（1680×1000，`tools/perf.mjs`，银河 + 动效全开）：
 
@@ -249,7 +258,7 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 
 | 指标 | 结果 |
 | --- | --- |
-| 空闲 3 s 主线程 `TaskDuration` | 2.9 ms（≈1 ms/s，与静态画面同量级） |
+| 空闲 3 s 主线程 `TaskDuration` | 3–7 ms（≈1–2 ms/s，与静态画面同量级） |
 | 运行时滤镜 / canvas / `requestAnimationFrame` | 0 / 0 / 0 |
 | 新增网络请求 | 每 12 min 一次 JSON（约 0.5 KB）；瓦片 **0 B**（内联 SVG，不入网络） |
 | 新增首屏位图 | 只有当前天象那一张（27–46 KB），其余 7 张按 `prefetch` 在后面预热 |
@@ -273,7 +282,7 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 2. **另一档色调的图不再抢带宽**。原来挂载后立刻在空闲时预热「浅色/深色」另一张图（226 KB），等于首屏多下一份。现在推迟到启动 4 s 之后再预热（省流量模式下干脆不预热），第一次翻色调最多等一次下载。
 3. **银河底图重新烘焙到 2048×1152 / q76**。2560×1440 在 1680×1000 的窗口里本来就是下采样，降到 2048 后 159→97 KB、226→139 KB，解码面积 -36%，观感无差别（`background-size: cover`，仍然是缩小）。
 
-## 七、目录结构
+## 八、目录结构
 
 ```
 dsh-ink-landscape/
@@ -288,7 +297,7 @@ dsh-ink-landscape/
 └─ tools/                  # 烘焙、截图、性能探针、profile 接入
 ```
 
-## 八、开发
+## 九、开发
 
 ```bash
 node tools/serve.mjs 54777
@@ -312,7 +321,7 @@ node tools/serve.mjs 54777
 
 截图与探针都走 **headless Edge + CDP**，不需要 playwright（Windows 上 Edge 是系统自带的）。
 
-## 九、素材与许可
+## 十、素材与许可
 
 * **代码**：[MIT](LICENSE)。
 * **银河底图**：ESO/S. Brunier *The Milky Way panorama*（[eso0932a](https://www.eso.org/public/images/eso0932a/)），**CC BY 4.0**，本仓库对其做了裁切、旋转、调色与重编码（可复现于 `art/galaxy-photo.html`）。署名 `ESO / S. Brunier · CC BY 4.0` 常驻画面左下角，不可关闭；二次分发请保留。
@@ -321,13 +330,34 @@ node tools/serve.mjs 54777
 
 细节与替换素材的步骤见 [NOTICE.md](NOTICE.md)。
 
-## 十、兼容性
+## 十一、兼容性
 
 * 针对 **DSH desktop（web 前端）** 编写，`platform: "web"`；宿主半是空实现，所以不影响任何 host 侧能力。
 * 只依赖 DSH 的公开客户端接口：`theme.overrideTokens` / `theme.getTheme` / `theme/change` / `slots.register` / `slots.inject`。
 * 令牌名与 `data-*` 钩子取自当前版本的外壳；DSH 改版后若某处漏色，用 `tools/probe-overlay.mjs` 一跑就能定位。
 
-## 十一、致谢
+## 十二、更新日志
+
+**0.3.1** · 文档与设置行
+
+* 「设置 → 通用」的截图换成真正带天气行的那张；补上天气状态的读法和隐私说明。
+* 安装命令、版本号对齐到当前 tag，补 `profiles/web` 的安装位置。
+* 离线预览页修一个小 bug：`disabled: false` 被当字符串写进属性，输入框在预览里永远是禁用的样子。
+
+**0.3.0** · 山水随实时天气换晴雨雪
+
+* 晴 / 阴 / 雨 / 雪 × 明暗 = 8 张底图，仍是「绘图期烘焙、运行期只解码」，首屏只下当前那一张（27–46 KB）。
+* 换天象 1.5 s 双层交叉淡入；雨雪是运行时内联 SVG 瓦片（512²、九宫格回卷、`translate3d` 两层视差）；云量推云气、降水定密度、风速改速度。运行时仍是零 filter / 零 canvas / 零常驻 rAF。
+* 天象取自 Open-Meteo `current`（12 min TTL，失败回落缓存或晴天），城市 geocoding 缓存 30 天，留空按时区猜。
+* 修：换城市时若上一次请求还在途，会被直接丢掉、白等到下一次 TTL —— 现在强制刷新掐掉旧请求，并用序号令牌作废它的回写。
+
+**0.2.4** · 启动更快：场景随首帧出现（829 → 317 ms），首屏少下 226 KB，银河底图降到 2048×1152。
+
+**0.2.3** · 支持直接从 GitHub 安装。
+
+**0.2.2** · 账户弹层与设置面板的底色修正；皮肤行拆成三选一 + 动效开关。
+
+## 十三、致谢
 
 * [DeepSeek Harness](https://github.com/deepseek-ai) —— 插件与主题接口。
 * [ESO](https://www.eso.org/) / Serge Brunier —— 那张让「星河」成立的全天照片。

@@ -1,6 +1,6 @@
 {
   "name": "dsh-ink-landscape",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "DSH 皮肤插件：宣纸水墨山水（随实时天气换晴雨雪）与真实银河照片的星空皮肤，可在 设置→通用 一键切换，附纯 CSS 动效与性能护栏。",
   "repository": {
     "type": "git",
