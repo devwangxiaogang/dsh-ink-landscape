@@ -27,11 +27,18 @@
 
 ## 2. 山水皮肤底图 —— MIT（本仓库原创）
 
-`lib/assets/scene-dawn.webp`、`lib/assets/scene-night.webp`、
+`lib/assets/scene-{clear,cloud,wet,snow}-{light,dark}.webp`、
 `lib/assets/starfield-*.webp`
 
 由本仓库的 `art/scene.svg`（手写 SVG）与 `art/galaxy-gen.mjs`（程序化星点瓦片）
-经 `tools/bake-art.mjs` 烘焙而成，随代码一并按 MIT 发布。
+经 `tools/bake-art.mjs` 烘焙而成，随代码一并按 MIT 发布。雨雪瓦片不落地成文件：
+运行时由 `lib/client.js` 的 `wxTile()` 用内联 SVG 生成，同样原创。
+
+## 2.5 天气数据 —— Open-Meteo（CC BY 4.0）
+
+画面里的天象来自 <https://open-meteo.com/> 的 `forecast` 与 `geocoding` 接口，
+数据本身以 CC BY 4.0 提供，插件仅在运行时请求、不打包、不转存（本地只缓存最近一次
+快照与城市经纬度，12 min / 30 天过期）。署名为 <https://open-meteo.com/>。
 
 ## 3. 字体
 

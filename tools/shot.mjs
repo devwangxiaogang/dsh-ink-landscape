@@ -6,7 +6,9 @@
  * HMR stream keeps the page busy. Driving Page.captureScreenshot over the
  * DevTools protocol waits in real time instead.
  *
- *   node tools/shot.mjs <url> <out.png> [waitMs] [width] [height] [light|dark]
+ *   node tools/shot.mjs <url> <out.png|out.webp> [waitMs] [width] [height] [light|dark]
+ *
+ * 扩展名是 .webp 时直接出 WebP（文档配图用，省一次转码）。
  */
 import { spawn } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -91,7 +93,8 @@ try {
   }
   await send('Page.navigate', { url })
   await sleep(waitMs)
-  const shot = await send('Page.captureScreenshot', { format: 'png' })
+  const webp = out.toLowerCase().endsWith('.webp')
+  const shot = await send('Page.captureScreenshot', webp ? { format: 'webp', quality: 86 } : { format: 'png' })
   if (!shot.result?.data) throw new Error(`capture failed: ${JSON.stringify(shot.error ?? shot)}`)
   writeFileSync(resolve(out), Buffer.from(shot.result.data, 'base64'))
   console.log(`captured ${out}`)

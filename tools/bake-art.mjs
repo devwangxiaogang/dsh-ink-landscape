@@ -1,15 +1,19 @@
 /**
  * 烘焙山水底图与三张星尘瓦片（银河底图见 tools/bake-photo.mjs）。
  *
- *   node tools/bake-art.mjs dawn|night   # 山水：art/scene.svg + art/scene.css
+ *   node tools/bake-art.mjs moods        # 山水 8 张：{clear,cloud,wet,snow}-{light,dark}
  *   node tools/bake-art.mjs tiles        # 星尘瓦片：far / near / twinkle
  *   node tools/bake-art.mjs all          # 以上全部
+ *
+ * 天气：同一张 art/scene.svg，靠 art/scene.css 的 8 块调色板换色、换云气不透明度，
+ * 所以「晴 / 阴 / 雨 / 雪」是同一构图的不同天气，切换时不会跳形。
  *
  * 为什么烘焙：画稿里的 feTurbulence / feDisplacementMap / feGaussianBlur 每次加载都要
  * 在主线程重算，是首屏卡顿的主因；位图只需一次解码（解码线程）+ 一次合成。
  * 星尘瓦片带透明（`omitBackground`），CSS 才能把它们叠在底图上漂移。
  *
- * 输出：lib/assets/scene-{dawn,night}.webp、lib/assets/starfield-{far,near,twinkle}.webp
+ * 输出：lib/assets/scene-{clear,cloud,wet,snow}-{light,dark}.webp、
+ *       lib/assets/tile-{rain,snow}.webp、lib/assets/starfield-{far,near,twinkle}.webp
  */
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
@@ -87,10 +91,19 @@ const GRAIN = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
 <feColorMatrix type="matrix" values="0 0 0 0 0.23 0 0 0 0 0.19 0 0 0 0 0.14 0 0 0 0.7 0"/></filter>
 <rect width="240" height="240" filter="url(#n)"/></svg>`
 
+// 纸纹：浅色正片叠底压暗，深色 soft-light 提亮。雨雪底图本身更平，纸纹要收敛一点。
 const GRAIN_CSS = {
-  dawn: 'mix-blend-mode: multiply; opacity: 0.14;',
-  night: 'mix-blend-mode: soft-light; opacity: 0.26;',
+  'clear-light': 'mix-blend-mode: multiply; opacity: 0.14;',
+  'clear-dark': 'mix-blend-mode: soft-light; opacity: 0.26;',
+  'cloud-light': 'mix-blend-mode: multiply; opacity: 0.15;',
+  'cloud-dark': 'mix-blend-mode: soft-light; opacity: 0.28;',
+  'wet-light': 'mix-blend-mode: multiply; opacity: 0.16;',
+  'wet-dark': 'mix-blend-mode: soft-light; opacity: 0.3;',
+  'snow-light': 'mix-blend-mode: multiply; opacity: 0.09;',
+  'snow-dark': 'mix-blend-mode: soft-light; opacity: 0.22;',
 }
+
+const MOODS = Object.keys(GRAIN_CSS)
 
 const read = (path) =>
   readFileSync(join(root, path), 'utf8')
@@ -99,7 +112,18 @@ const read = (path) =>
     .replace(/<!--[\s\S]*?-->/g, '')
     .trim()
 
-async function bake({ svgPath, svg: inlineSvg, cssPath, scheme, out, width, height, transparent, extraCss = '' }) {
+async function bake({
+  svgPath,
+  svg: inlineSvg,
+  cssPath,
+  scheme,
+  out,
+  width,
+  height,
+  transparent,
+  extraCss = '',
+  quality = 88,
+}) {
   const svg = inlineSvg ?? read(svgPath)
   const palette = read(cssPath)
   const workDir = join(root, `.bake-${out}`)
@@ -174,7 +198,7 @@ async function bake({ svgPath, svg: inlineSvg, cssPath, scheme, out, width, heig
 
     const shot = await send('Page.captureScreenshot', {
       format: 'webp',
-      quality: 88,
+      quality,
       captureBeyondViewport: false,
       ...(transparent ? { omitBackground: true } : {}),
     })
@@ -218,15 +242,16 @@ async function ink(scheme) {
   })
 }
 
+
 async function tile(kind) {
   // 屏幕上的贴图尺寸：far 560 / near 980 / twinkle 720（见 lib/client.js 的 background-size），
   // 瓦片本身比它们略大或相当，避免放大后星点发糊。
-  const size = kind === 'far' ? 768 : 1024
+  const size = kind === "far" ? 768 : 1024
   const svg = buildStarTile(kind, size)
   await bake({
     svg,
-    cssPath: 'art/galaxy.css',
-    scheme: 'dark',
+    cssPath: "art/galaxy.css",
+    scheme: "dark",
     out: `starfield-${kind}.webp`,
     width: size,
     height: size,
@@ -234,17 +259,13 @@ async function tile(kind) {
   })
 }
 
-// 注意：银河底图已经改为真实天体照片（见 tools/bake-photo.mjs），这里不再生成
-// galaxy-{light,dark}.webp，只负责山水底图与三张星尘瓦片。'all' 因此也包含 twinkle。
+const STAR_TILES = ["far", "near", "twinkle"]
+
 const jobs =
-  arg === 'all'
-    ? ['dawn', 'night', 'far', 'near', 'twinkle']
-    : arg === 'tiles'
-      ? ['far', 'near', 'twinkle']
-      : [arg]
+  arg === "all" ? [...MOODS, ...STAR_TILES] : arg === "moods" ? MOODS : arg === "tiles" ? STAR_TILES : [arg]
 
 for (const job of jobs) {
-  if (job === 'dawn' || job === 'night') await ink(job)
-  else if (job === 'far' || job === 'near' || job === 'twinkle') await tile(job)
+  if (MOODS.includes(job)) await ink(job)
+  else if (STAR_TILES.includes(job)) await tile(job)
   else throw new Error(`unknown target: ${job}（银河底图请用 node tools/bake-photo.mjs）`)
 }

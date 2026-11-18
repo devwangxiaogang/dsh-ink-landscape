@@ -295,10 +295,14 @@
 
   // The plugin publishes the preview face while applying, so read it afterwards.
   const skin = mod.__art.skin
+  window.__SKIN__ = mod.__art // 调试/截图用：__SKIN__.setMood("wet")
 
   if (params.get('family')) skin.setFamily(params.get('family'))
   if (params.get('tone')) { scheme = params.get('tone') === 'dark' ? 'dark' : 'light'; publish() }
   if (params.get('motion') === 'on') skin.setMotion(true)
+  // ?weather=clear|cloud|wet|snow 钉一档天象（截图与回归用），live = 回到真实天气。
+  const forced = params.get('weather')
+  if (forced && mod.__art.setMood) mod.__art.setMood(forced === 'live' ? null : forced)
 
   /* ---------------- paint the mock chrome from plugin state ---------------- */
   const COPY = {

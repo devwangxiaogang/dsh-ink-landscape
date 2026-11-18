@@ -105,17 +105,26 @@
   /* ---- minimal hooks, enough for the row ---- */
   const states = []
   let cursor = 0
+  let effectCursor = 0
+  const effectDone = new Set()
   const React = {
     createElement: (type, props, ...children) => ({ type, props, children: children.flat() }),
     useState: (initial) => {
       const index = cursor++
       if (!(index in states)) states[index] = initial
       return [states[index], (next) => {
-        states[index] = typeof next === 'function' ? next(states[index]) : next
+        const value = typeof next === 'function' ? next(states[index]) : next
+        if (Object.is(value, states[index])) return
+        states[index] = value
         rerender()
       }]
     },
-    useEffect: (fn) => { fn() },
+    useEffect: (fn) => {
+      const key = effectCursor++
+      if (effectDone.has(key)) return
+      effectDone.add(key)
+      fn()
+    },
   }
 
   const layers = new Map()
@@ -184,7 +193,8 @@
     const row = registered.find((entry) => entry.options.name === 'settings.general.item')
     if (!row) return
     cursor = 0
-    host.replaceChildren(render(row.Component({})))
+    effectCursor = 0
+    host.replaceChildren(render(row.Component({ skin: mod.__art.skin })))
   }
 
   publish()

@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
 [![Assets: CC BY 4.0](https://img.shields.io/badge/assets-CC%20BY%204.0-blue.svg)](NOTICE.md)
 [![Platform: DSH web](https://img.shields.io/badge/platform-DSH%20web-4a7f6b.svg)](#兼容性)
-[![Version](https://img.shields.io/badge/version-0.2.2-a8362a.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.3.0-a8362a.svg)](package.json)
 
 ![山水 · 浅色（宣纸晨岚）](docs/hero-light.webp)
 
@@ -31,10 +31,21 @@ DSH 的界面完全由一套 `--dsw-*` 设计令牌驱动。这个插件不去�
 | 字体 | 正文宋体、标题楷体 | 无衬线深空风 |
 | 画面 | 手写 SVG 三远法构图 → 烘焙位图 | ESO/S. Brunier 全景照片裁切调色 |
 | 标注 | 竖排题字 + 收藏印 | 太阳系 / 地球（放大镜） |
+| 天气 | **跟着当地实时天气换天象**（晴 / 阴 / 雨 / 雪），雨雪有下落动画 | 不参与 |
 
-| 山水 · 浅色 | 山水 · 深色 |
+| 山水 · 浅色（晴） | 山水 · 深色（晴） |
 | --- | --- |
 | ![晨岚](docs/preview-light.webp) | ![夜山](docs/preview-dark.webp) |
+
+同一条溪山，天变了画面就变（离线预览页 `&weather=wet|cloud|snow` 强制天象）：
+
+| 阴 · 浅色 | 雨 · 浅色 |
+| --- | --- |
+| ![阴](docs/weather-cloud-light.webp) | ![雨](docs/weather-wet-light.webp) |
+
+| 雪 · 深色 |
+| --- |
+| ![雪](docs/weather-snow-dark.webp) |
 
 | 银河 · 浅色 | 银河 · 深色 |
 | --- | --- |
@@ -143,6 +154,24 @@ New-Item -ItemType Junction `
 * **动效开关**：同一行右侧的圆点（默认开）。关掉只留静态画面；系统设了「减少动态效果」时自动压掉。
 * **跟随明暗**：皮肤自己组两套令牌（light / dark），DSH 切明暗时画面与配色一起换，不需要重新选皮肤。
 * **偏好存放**：`localStorage` 的 `dsh-ink-landscape:skin` 与 `:motion`，不写入 DSH 设置，不会和主题设置打架。
+* **实时天气**（0.3.0，只作用于山水）：同一行下方多一条天气设置 —— 开关 + 「城市」输入框（留空则按系统时区猜）。
+
+## 四·五、天气怎么驱动画面
+
+选了山水、天气开关打开时，画面每天象一张图，切换是 1.5 s 的交叉淡入：
+
+| 天象 | 判据（WMO weather code 为主，云量为辅） | 画面 | 动画 |
+| --- | --- | --- | --- |
+| 晴 `clear` | 0/1 且云量 < 55% | 日/月当空，远山清晰，宣纸暖白 | 云岚缓慢平移（42 s / 26 s） |
+| 阴 `cloud` | 2/3、45/48，或云量 ≥ 55% | 日/月淡去（`--ink-sun-o: .32`），雾带加浓 | 同上 + 雾层呼吸 |
+| 雨 `wet` | 51–67、80–82、95–99 | 天光压暗、山脊转冷、云气最重 | 雨丝两层反向滚落（1.9 s / 3.1 s），密度随降水量 |
+| 雪 `snow` | 71–77、85/86 | 纸色发白、远山褪成淡墨、日/月几乎隐去 | 雪片两层错速飘落（7 s / 11 s） |
+
+* **连续量也参与**：云量决定雾的浓度（`--ink-veil-o`），降水量决定雨雪密度与速度（三档），风速再叠一层（`--ink-wx-scale`）。
+* **取数**：Open-Meteo `current` 接口，无需 key；12 min TTL，失败静默用上一次快照（`stale`），90 s 后重试；`navigator.connection.saveData` 时直接不联网，只用缓存。
+* **定位**：城市输入框 → Open-Meteo geocoding（结果缓存 30 天）→ 留空则用 `Intl` 时区查表（22 个城市）→ 认不出落上海。
+* **失败即回退**：请求失败、字段缺失、`prefers-reduced-motion`、关掉动效开关 —— 任何一种都退回静态底图，画面不会空。
+
 
 ## 五、实现要点（踩过的坑）
 
@@ -174,9 +203,15 @@ shell 把 `--dsw-alias-bg-base` 画在**四层**全屏元素上（`body` → fra
 山水画稿里有 24 处 SVG 滤镜（三条 `feTurbulence` + `feDisplacementMap` 铺满整幅山脊、11 个雾形模糊），每次加载都要在主线程重算、是首屏卡顿的主因。发布形态改成「绘图期烘焙、运行期只解码」：
 
 ```bash
-node tools/bake-art.mjs all     # art/scene.svg → lib/assets/scene-{dawn,night}.webp + 三张星尘瓦片
+node tools/bake-art.mjs moods   # art/scene.svg → lib/assets/scene-{clear,cloud,wet,snow}-{light,dark}.webp（8 张）
+node tools/bake-art.mjs tiles   # 三张星尘瓦片
+node tools/bake-art.mjs all     # 上面全部
 node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{light,dark}.webp
 ```
+
+**为什么瓦片不用位图**：雨雪瓦片试过烘焙 WebP —— 1024² 的透明细线在 Chromium 的截图编码下几乎不做有损压缩，`quality=1` 仍有 142 KB，比一整张山水底图还大。改成运行时拼一张内联 SVG（512²、确定性 PRNG、九宫格回卷保证平铺），矢量不受 DPR 影响，光栅一次后由合成器平移，体积只存在于内存里。
+
+调色板在 `art/scene.css`，一天象一块（`html[data-ink-skin="wet-dark"]` …）；`--ink-sun-o` 决定日/月盘的可见度，`--ink-cloud-wisp/h1..h3/n1..n3`、`--ink-hush-1..5` 控制云丝与雪意 —— 这些在烘焙时就被算进像素。
 
 ### 动效怎么做到不卡
 
@@ -189,7 +224,9 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 | 闪烁层 | 整层 `opacity` 呼吸 | 11 s |
 | 流星 ×2 | 斜向流光，错开 | 13 s / 19 s |
 | 山水云岚 | 两幅山体缓慢平移 + 雾带呼吸 | 42 s / 26 s |
-
+| 天象切换 | 两层 `.ink-art` 交叉淡入（`opacity`），淡完把旧层瞬间清零 | 1.5 s，事件驱动 |
+| 雨丝 · 近 / 远 | `translate3d` 整层滚落（同一个瓦片，错速） | 1.5 s / 2.6 s |
+| 雪片 · 近 / 远 | 同上，方向略斜 | 7 s / 11 s |
 修过的两处每帧开销：流星原来用 `filter: drop-shadow`（每帧重算滤镜）→ 把光晕画进第二层渐变；闪烁层加 `translate3d` 单独提层。
 
 ## 六、性能实测
@@ -205,6 +242,19 @@ node tools/bake-photo.mjs all   # art/galaxy-photo.html → lib/assets/galaxy-{l
 | 运行时 SVG 节点 | 3（三个圆环，避免方角化） |
 | 样式表 `<style>` | 1 |
 | 场景挂载时机 | 首次同步挂载（与皮肤一起出现在第一帧），切换时才让帧 |
+
+### 天气层加了多少
+
+雨雪全开（离线预览页 1440×900，`weather=wet`，`tools/perf.mjs`）：
+
+| 指标 | 结果 |
+| --- | --- |
+| 空闲 3 s 主线程 `TaskDuration` | 2.9 ms（≈1 ms/s，与静态画面同量级） |
+| 运行时滤镜 / canvas / `requestAnimationFrame` | 0 / 0 / 0 |
+| 新增网络请求 | 每 12 min 一次 JSON（约 0.5 KB）；瓦片 **0 B**（内联 SVG，不入网络） |
+| 新增首屏位图 | 只有当前天象那一张（27–46 KB），其余 7 张按 `prefetch` 在后面预热 |
+
+动画全部是 `transform` / `opacity`，且降水容器比视口高 512 px（正好一个瓦片），`from` 与 `to` 是同一帧，循环处无接缝、不需要 JS 参与。
 
 ### 启动为什么快 / 曾经慢在哪
 
@@ -232,7 +282,7 @@ dsh-ink-landscape/
 ├─ lib/
 │  ├─ index.js             # 宿主半：空 apply（让 loader 认这个包）
 │  ├─ client.js            # 客户端半：唯一需要维护的脚本（手写 lazy-CJS bundle）
-│  └─ assets/              # 烘焙好的位图（山水 2 张 / 银河 2 张 / 星尘 3 张）
+│  └─ assets/              # 烘焙好的位图（山水 8 张 · 天象×明暗 / 银河 2 张 / 星尘 3 张）
 ├─ art/                    # 画稿工作区：scene.svg、galaxy-photo.html、galaxy-gen.mjs、调色板
 ├─ preview/                # 离线预览页（伪造 shell + 真实令牌，可脱离 DSH 调画面）
 └─ tools/                  # 烘焙、截图、性能探针、profile 接入
@@ -244,12 +294,13 @@ dsh-ink-landscape/
 node tools/serve.mjs 54777
 # → http://127.0.0.1:54777/preview/index.html?family=ink&scheme=dark
 #   右下角的三选一开关等价于设置里那一行；改 client.js 刷新即可，不用重启 DSH
+#   加 &weather=clear|cloud|wet|snow 钉一档天象（截图/回归用），&weather=live 回到真实天气
 ```
 
 | 脚本 | 用途 |
 | --- | --- |
 | `tools/profile-link.mjs` | 接入 / 卸载 / 查看 profile 安装状态（写 package.json、bundles、junction，自动备份） |
-| `tools/bake-art.mjs` | 烘焙山水底图与星尘瓦片：`dawn` / `night` / `tiles` / `all` |
+| `tools/bake-art.mjs` | 烘焙山水底图与星尘瓦片：`moods`（8 张天象）/ `tiles` / `all` |
 | `tools/bake-photo.mjs` | 烘焙银河底图：把 ESO 照片按 `art/galaxy-photo.html` 的裁切调色渲染成 WebP |
 | `tools/shot.mjs` | CDP 无头截图：`node tools/shot.mjs <url> <out.png> [waitMs] [w] [h] [light\|dark]` |
 | `tools/shot-skin.mjs` | 给真实 shell 预置皮肤后截图 |

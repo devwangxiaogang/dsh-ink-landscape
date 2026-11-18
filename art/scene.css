@@ -1,4 +1,16 @@
-html[data-ink-skin="dawn"] {
+/* 山水底图调色板 —— 两个维度：
+ *   天象（clear 晴 / cloud 阴云 / wet 雨 / snow 雪）× 色调（light / dark）
+ * 选择器名即 tools/bake-art.mjs 的 scheme 名，烘焙时整页只挂一块，
+ * 因此每块都是自足的：色值 + 云气不透明度（--ink-cloud-*、--ink-hush-*）。
+ *
+ * 云气变量控制 SVG 里云带与地平雾带的 opacity，用来在同一张画稿上区分
+ * 「晴（云薄）/ 阴（云厚）/ 雨（云压低）/ 雪（云白而漫）」。缺省回落到
+ * art/scene.svg 里写死的值，所以 clear-light / clear-dark 不写这些变量时
+ * 与 0.2.x 的 dawn / night 完全等价。
+ */
+
+html[data-ink-skin="clear-light"] {
+  --ink-sun-o: 1;
   --ink-far: #7d95a8;
   --ink-mid: #2f424d;
   --ink-near: #17212a;
@@ -17,7 +29,8 @@ html[data-ink-skin="dawn"] {
   --ink-wash-near-1: 0.95;
   --ink-wash-near-2: 0.62;
 }
-html[data-ink-skin="night"] {
+html[data-ink-skin="clear-dark"] {
+  --ink-sun-o: 1;
   --ink-far: #2b3d4c;
   --ink-mid: #16222b;
   --ink-near: #05080a;
@@ -35,4 +48,202 @@ html[data-ink-skin="night"] {
   --ink-wash-mid-2: 0.55;
   --ink-wash-near-1: 0.97;
   --ink-wash-near-2: 0.7;
+}
+
+/* 阴云：天光转灰，远山褪成一片，云带压厚，日轮只剩一团淡白。 */
+html[data-ink-skin="cloud-light"] {
+  --ink-sun-o: 0.32;
+  --ink-far: #7f93a3;
+  --ink-mid: #394b57;
+  --ink-near: #1a2530;
+  --ink-water: #b6bab0;
+  --ink-branch: #3b332a;
+  --ink-mist: #f7f5ef;
+  --ink-hush: #f5f3ec;
+  --ink-sun: #e7e5dc;
+  --ink-sky-top: #f5f3ed;
+  --ink-sky-mid: #eef0eb;
+  --ink-sky-low: #e3e5e0;
+  --ink-wash-far-1: 0.44;
+  --ink-wash-far-2: 0.26;
+  --ink-wash-mid-1: 0.78;
+  --ink-wash-mid-2: 0.5;
+  --ink-wash-near-1: 0.95;
+  --ink-wash-near-2: 0.62;
+  --ink-cloud-wisp: 0.3;
+  --ink-cloud-h1: 0.82;
+  --ink-cloud-h2: 0.92;
+  --ink-cloud-h3: 0.66;
+  --ink-cloud-n1: 0.7;
+  --ink-cloud-n2: 0.94;
+  --ink-cloud-n3: 0.72;
+  --ink-hush-1: 0.9;
+  --ink-hush-2: 0.5;
+  --ink-hush-3: 0.4;
+  --ink-hush-4: 0.36;
+  --ink-hush-5: 0.8;
+}
+html[data-ink-skin="cloud-dark"] {
+  --ink-sun-o: 0.32;
+  --ink-far: #26353f;
+  --ink-mid: #131d24;
+  --ink-near: #04070a;
+  --ink-water: #17232b;
+  --ink-branch: #c3d4e0;
+  --ink-mist: #2c3a45;
+  --ink-hush: #0a1015;
+  --ink-sun: #c9d2d7;
+  --ink-sky-top: #0c1218;
+  --ink-sky-mid: #101820;
+  --ink-sky-low: #1f2b35;
+  --ink-wash-far-1: 0.5;
+  --ink-wash-far-2: 0.32;
+  --ink-wash-mid-1: 0.8;
+  --ink-wash-mid-2: 0.55;
+  --ink-wash-near-1: 0.97;
+  --ink-wash-near-2: 0.7;
+  --ink-cloud-wisp: 0.3;
+  --ink-cloud-h1: 0.84;
+  --ink-cloud-h2: 0.94;
+  --ink-cloud-h3: 0.68;
+  --ink-cloud-n1: 0.72;
+  --ink-cloud-n2: 0.96;
+  --ink-cloud-n3: 0.74;
+  --ink-hush-1: 0.9;
+  --ink-hush-2: 0.5;
+  --ink-hush-3: 0.4;
+  --ink-hush-4: 0.36;
+  --ink-hush-5: 0.8;
+}
+
+/* 雨：墨色更湿更沉，水面反光压暗，云带几乎封住天际。 */
+html[data-ink-skin="wet-light"] {
+  --ink-sun-o: 0.06;
+  --ink-far: #6b8395;
+  --ink-mid: #2b3e4a;
+  --ink-near: #121b23;
+  --ink-water: #94a2a5;
+  --ink-branch: #3b332a;
+  --ink-mist: #f1f4f4;
+  --ink-hush: #e8eeee;
+  --ink-sun: #dbe2e3;
+  --ink-sky-top: #eaecec;
+  --ink-sky-mid: #e2e7e8;
+  --ink-sky-low: #d3dadd;
+  --ink-wash-far-1: 0.46;
+  --ink-wash-far-2: 0.28;
+  --ink-wash-mid-1: 0.82;
+  --ink-wash-mid-2: 0.54;
+  --ink-wash-near-1: 0.96;
+  --ink-wash-near-2: 0.66;
+  --ink-cloud-wisp: 0.15;
+  --ink-cloud-h1: 0.92;
+  --ink-cloud-h2: 0.98;
+  --ink-cloud-h3: 0.74;
+  --ink-cloud-n1: 0.8;
+  --ink-cloud-n2: 0.98;
+  --ink-cloud-n3: 0.82;
+  --ink-hush-1: 1;
+  --ink-hush-2: 0.62;
+  --ink-hush-3: 0.52;
+  --ink-hush-4: 0.46;
+  --ink-hush-5: 0.86;
+}
+html[data-ink-skin="wet-dark"] {
+  --ink-sun-o: 0.06;
+  --ink-far: #263944;
+  --ink-mid: #101c25;
+  --ink-near: #020507;
+  --ink-water: #17242e;
+  --ink-branch: #c3d4e0;
+  --ink-mist: #24323c;
+  --ink-hush: #060b10;
+  --ink-sun: #b7c4cb;
+  --ink-sky-top: #070d12;
+  --ink-sky-mid: #0b131a;
+  --ink-sky-low: #1b2833;
+  --ink-wash-far-1: 0.52;
+  --ink-wash-far-2: 0.34;
+  --ink-wash-mid-1: 0.84;
+  --ink-wash-mid-2: 0.58;
+  --ink-wash-near-1: 0.98;
+  --ink-wash-near-2: 0.74;
+  --ink-cloud-wisp: 0.1;
+  --ink-cloud-h1: 0.95;
+  --ink-cloud-h2: 1;
+  --ink-cloud-h3: 0.78;
+  --ink-cloud-n1: 0.84;
+  --ink-cloud-n2: 1;
+  --ink-cloud-n3: 0.88;
+  --ink-hush-1: 1;
+  --ink-hush-2: 0.62;
+  --ink-hush-3: 0.52;
+  --ink-hush-4: 0.46;
+  --ink-hush-5: 0.86;
+}
+
+/* 雪：天光泛白、纸色发冷，雾带最亮（雪把地气烘成一片白光）。 */
+html[data-ink-skin="snow-light"] {
+  --ink-sun-o: 0.1;
+  --ink-far: #8ea4b5;
+  --ink-mid: #485a68;
+  --ink-near: #25313b;
+  --ink-water: #d3dbdd;
+  --ink-branch: #3b332a;
+  --ink-mist: #ffffff;
+  --ink-hush: #fdfefe;
+  --ink-sun: #f5f8f9;
+  --ink-sky-top: #fbfcfd;
+  --ink-sky-mid: #f3f6f8;
+  --ink-sky-low: #e7ecf0;
+  --ink-wash-far-1: 0.4;
+  --ink-wash-far-2: 0.22;
+  --ink-wash-mid-1: 0.72;
+  --ink-wash-mid-2: 0.44;
+  --ink-wash-near-1: 0.9;
+  --ink-wash-near-2: 0.56;
+  --ink-cloud-wisp: 0;
+  --ink-cloud-h1: 1;
+  --ink-cloud-h2: 1;
+  --ink-cloud-h3: 0.88;
+  --ink-cloud-n1: 0.92;
+  --ink-cloud-n2: 1;
+  --ink-cloud-n3: 0.94;
+  --ink-hush-1: 0.98;
+  --ink-hush-2: 0.6;
+  --ink-hush-3: 0.5;
+  --ink-hush-4: 0.44;
+  --ink-hush-5: 0.9;
+}
+html[data-ink-skin="snow-dark"] {
+  --ink-sun-o: 0.1;
+  --ink-far: #2e414d;
+  --ink-mid: #182730;
+  --ink-near: #05090b;
+  --ink-water: #1c2b34;
+  --ink-branch: #c3d4e0;
+  --ink-mist: #33434e;
+  --ink-hush: #131f27;
+  --ink-sun: #c6d2d9;
+  --ink-sky-top: #0b1319;
+  --ink-sky-mid: #101a22;
+  --ink-sky-low: #21303a;
+  --ink-wash-far-1: 0.46;
+  --ink-wash-far-2: 0.3;
+  --ink-wash-mid-1: 0.78;
+  --ink-wash-mid-2: 0.52;
+  --ink-wash-near-1: 0.95;
+  --ink-wash-near-2: 0.68;
+  --ink-cloud-wisp: 0;
+  --ink-cloud-h1: 1;
+  --ink-cloud-h2: 1;
+  --ink-cloud-h3: 0.88;
+  --ink-cloud-n1: 0.92;
+  --ink-cloud-n2: 1;
+  --ink-cloud-n3: 0.94;
+  --ink-hush-1: 0.98;
+  --ink-hush-2: 0.6;
+  --ink-hush-3: 0.5;
+  --ink-hush-4: 0.44;
+  --ink-hush-5: 0.9;
 }
